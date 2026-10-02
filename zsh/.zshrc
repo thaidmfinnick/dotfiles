@@ -12,7 +12,7 @@ export ZSH="$HOME/.oh-my-zsh"
 ZSH_CUSTOM="$DOTFILES/zsh/omz"
 ZSH_THEME="headline"
 plugins=(git)
-source $ZSH/oh-my-zsh.sh
+[[ -f $ZSH/oh-my-zsh.sh ]] && source $ZSH/oh-my-zsh.sh
 
 for file in ${config_files:#*/(path|completion).zsh}; do source $file; done
 

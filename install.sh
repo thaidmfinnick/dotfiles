@@ -30,24 +30,32 @@ command -v stow >/dev/null 2>&1 || brew install stow
 for dir in */; do
   pkg="${dir%/}"
   [[ " ${NOT_PACKAGES[*]} " == *" $pkg "* ]] && continue
-  [[ " ${FOLD_PACKAGES[*]} " == *" $pkg "* ]] && fold=() || fold=(--no-folding)
+  # macOS bash 3.2 + set -u rejects "${empty[@]}", so pass the flag as a plain string
+  [[ " ${FOLD_PACKAGES[*]} " == *" $pkg "* ]] && fold="" || fold="--no-folding"
   info "Linking $pkg"
-  stow "${fold[@]}" --restow "$pkg"
+  stow $fold --restow "$pkg"
 done
 
-# 4. Neovim config lives in its own repo
+# 4. oh-my-zsh (KEEP_ZSHRC: keep the .zshrc linked above)
+if [[ ! -d "$HOME/.oh-my-zsh" ]]; then
+  info "Installing oh-my-zsh"
+  RUNZSH=no CHSH=no KEEP_ZSHRC=yes sh -c \
+    "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+fi
+
+# 5. Neovim config lives in its own repo
 if [[ ! -e "$HOME/.config/nvim" ]]; then
   info "Cloning nvim config"
   git clone https://github.com/thaidmfinnick/nvim-dotfiles.git "$HOME/.config/nvim"
 fi
 
-# 5. Language runtimes and global npm packages
+# 6. Language runtimes (mise)
 if command -v mise >/dev/null 2>&1; then
   info "Installing mise tools"
   mise install
 fi
 
-# 6. macOS preferences (opt-in: ./install.sh --macos)
+# 7. macOS preferences (opt-in: ./install.sh --macos)
 if [[ "${1:-}" == "--macos" ]]; then
   info "Applying macOS defaults"
   "$DOTFILES/macos/defaults.sh"
