@@ -1,0 +1,30 @@
+# macOS
+.DS_Store
+
+# Machine-specific overrides and secrets (sourced if present, never committed)
+*.local
+.env
+.env.*
+
+# Keys and credentials
+*.pem
+*.key
+*.jks
+*.keystore
+*-key
+id_*
+.ssh/
+.boto
+.netrc
+
+# Shell / REPL history
+*_history
+.zsh_sessions/
+.zcompdump*
+.lesshst
+.viminfo
+
+# App-generated noise
+automatic_backups/
+*.bak
+*.backup

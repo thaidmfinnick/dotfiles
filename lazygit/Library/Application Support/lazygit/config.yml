@@ -1,0 +1,21 @@
+gui:
+  theme:
+    activeBorderColor: ["#7aa2f7", "bold"]
+    inactiveBorderColor: ["#3b4261"]
+    optionsTextColor: ["#9aa5ce"]
+    selectedLineBgColor: ["#2e3440"]
+    # selectedRangeBgColor: ["#434c5e"]
+    cherryPickedCommitBgColor: ["#ff9e64"]
+    cherryPickedCommitFgColor: ["#1a1b26"]
+    unstagedChangesColor: ["#f7768e"]
+    defaultFgColor: ["#c0caf5"]
+    searchingActiveBorderColor: ["#9ece6a"]
+os:
+  # o = open: inside nvim ($NVIM is set) hide the lazygit float and open the file in the nvim buffer;
+  # outside nvim just open it with nvim
+  open: '[ -z "$NVIM" ] && nvim -- {{filename}} || { nvim --server "$NVIM" --remote-expr "v:lua.LazygitHide()" >/dev/null; nvim --server "$NVIM" --remote {{filename}}; }'
+  # e = edit: edit the file inside the lazygit float, :q to go back to lazygit
+  edit: "nvim -- {{filename}}"
+  editAtLine: "nvim +{{line}} -- {{filename}}"
+  editInTerminal: true
+  openDirInEditor: "nvim {{directory}}"

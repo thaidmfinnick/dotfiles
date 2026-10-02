@@ -1,0 +1,2 @@
+#!/bin/sh
+NVIM_LISTEN_ADDRESS="" exec nvim "$@"

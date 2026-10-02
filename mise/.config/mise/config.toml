@@ -1,0 +1,10 @@
+[tools]
+ansible = "latest"
+elixir = "1.15.8"
+erlang = "25.3.2.20"
+fastfetch = "latest"
+flutter = "latest"
+just = "latest"
+node = "lts"
+pre-commit = "latest"
+ruby = "3.3"
