@@ -38,6 +38,7 @@ Everything I use that is **not** installed with Homebrew (Homebrew packages are 
 | zoxide | install script | `~/.local/bin/zoxide` |
 | uv / uvx | `curl -LsSf https://astral.sh/uv/install.sh \| sh` | `~/.local/bin` |
 | Claude Code | `curl -fsSL https://claude.ai/install.sh \| bash` | `~/.local/bin/claude` |
+| herdr | https://herdr.dev (config: `herdr/`, update with `herdr update`) | `~/.local/bin/herdr` |
 | Neovim | release tarball (config: [nvim-dotfiles](https://github.com/thaidmfinnick/nvim-dotfiles)) | `/usr/local/nvim` |
 | 1Password CLI (`op`) | pkg installer | `/usr/local/bin/op` |
 | Go | pkg installer | `/usr/local/go` |

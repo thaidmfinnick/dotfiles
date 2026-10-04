@@ -29,6 +29,15 @@ local reloadInterval = 120 -- 5 phút = 300 giây
 local browserReloadButtonPos = { x = 93, y = 97 } -- Toạ độ nút Reload trên trình duyệt
 local targetReloadPos = { x = 699, y = 565 }
 local pageLoadWaitTime = 5 -- Thời gian chờ (giây) để trang tải xong trước khi click
+
+-- CHẾ ĐỘ CHẠY: "A" = Block A (chuỗi click cũ + reload), "B" = Block B (tap, chờ, space)
+-- Đổi chế độ bằng Cmd + Option + Ctrl + M
+local currentMode = "A"
+
+-- CẤU HÌNH BLOCK B
+local blockBTapPos = { x = 398, y = 827 } -- Toạ độ tap
+local blockBMinWait = 5 -- Thời gian chờ tối thiểu (giây) trước khi nhấn Space
+local blockBMaxWait = 10 -- Thời gian chờ tối đa (giây) trước khi nhấn Space
 -- =========================================================================
 
 -- ==========================================
@@ -64,7 +73,7 @@ local function doReloadAndClick()
 end
 
 -- ==========================================
--- HÀM CHỨA CHUỖI HÀNH ĐỘNG TỰ ĐỘNG THEO DANH SÁCH
+-- BLOCK A: CHUỖI HÀNH ĐỘNG TỰ ĐỘNG THEO DANH SÁCH
 -- ==========================================
 local function runActionSequence()
 	-- NẾU ĐANG RELOAD TRANG (Mỗi 5 phút), TẠM DỪNG VIỆC CLICK LUNG TUNG
@@ -99,7 +108,68 @@ local function runActionSequence()
 end
 
 -- ==========================================
--- 2. BẮT ĐẦU VÒNG LẶP VÔ HẠN (Bấm Cmd + Option + Ctrl + Y)
+-- BLOCK B: TAP -> CHỜ 5-10s -> SPACE -> CHỜ 1s -> MŨI TÊN PHẢI -> CHỜ 1s -> LẶP LẠI
+-- ==========================================
+local function runBlockBSequence()
+	-- Tap vào toạ độ
+	hs.mouse.setAbsolutePosition(blockBTapPos)
+	hs.eventtap.leftClick(blockBTapPos)
+
+	-- Chờ ngẫu nhiên 5-10 giây rồi nhấn Space
+	local waitTime = blockBMinWait + (math.random() * (blockBMaxWait - blockBMinWait))
+	loopTimer = hs.timer.doAfter(waitTime, function()
+		hs.eventtap.keyStroke({}, "space")
+
+		-- Chờ 1 giây rồi nhấn phím Mũi tên phải
+		loopTimer = hs.timer.doAfter(1, function()
+			hs.eventtap.keyStroke({}, "right")
+
+			-- Chờ 1 giây rồi lặp lại toàn bộ quy trình
+			loopTimer = hs.timer.doAfter(1, runBlockBSequence)
+		end)
+	end)
+end
+
+-- ==========================================
+-- HÀM BẮT ĐẦU / DỪNG THEO CHẾ ĐỘ HIỆN TẠI
+-- ==========================================
+local function stopAll()
+	if loopTimer then
+		loopTimer:stop()
+		loopTimer = nil
+	end
+
+	if reloadTimer then
+		reloadTimer:stop()
+		reloadTimer = nil
+	end
+
+	isReloading = false
+end
+
+local function startCurrentMode()
+	isReloading = false
+
+	if currentMode == "A" then
+		hs.alert.show(
+			string.format("🚀 BLOCK A: BẮT ĐẦU CHẠY CHUỖI %d CLICK (Sẽ reload mỗi 5 phút)", #targetYList),
+			2
+		)
+		-- Kích hoạt vòng lặp chính
+		runActionSequence()
+		-- Kích hoạt vòng lặp reload định kỳ
+		reloadTimer = hs.timer.doEvery(reloadInterval, doReloadAndClick)
+	else
+		hs.alert.show(
+			string.format("🚀 BLOCK B: TAP (%d, %d) -> CHỜ %d-%ds -> SPACE -> →", blockBTapPos.x, blockBTapPos.y, blockBMinWait, blockBMaxWait),
+			2
+		)
+		runBlockBSequence()
+	end
+end
+
+-- ==========================================
+-- 2. BẮT ĐẦU VÒNG LẶP VÔ HẠN THEO CHẾ ĐỘ HIỆN TẠI (Bấm Cmd + Option + Ctrl + Y)
 -- ==========================================
 hs.hotkey.bind({ "cmd", "option", "ctrl" }, "Y", function()
 	if loopTimer or reloadTimer then
@@ -107,36 +177,29 @@ hs.hotkey.bind({ "cmd", "option", "ctrl" }, "Y", function()
 		return
 	end
 
-	hs.alert.show(
-		string.format("🚀 BẮT ĐẦU CHẠY CHUỖI %d CLICK (Sẽ reload mỗi 5 phút)", #targetYList),
-		2
-	)
-
-	isReloading = false
-
-	-- Kích hoạt vòng lặp chính
-	runActionSequence()
-
-	-- Kích hoạt vòng lặp reload mỗi 5 phút (300 giây)
-	reloadTimer = hs.timer.doEvery(reloadInterval, doReloadAndClick)
+	startCurrentMode()
 end)
 
 -- ==========================================
 -- 3. DỪNG VÒNG LẶP (Bấm Cmd + Option + Ctrl + S)
 -- ==========================================
 hs.hotkey.bind({ "cmd", "option", "ctrl" }, "S", function()
-	-- Dừng vòng lặp click chính
-	if loopTimer then
-		loopTimer:stop()
-		loopTimer = nil
-	end
-
-	-- Dừng bộ đếm thời gian 5 phút
-	if reloadTimer then
-		reloadTimer:stop()
-		reloadTimer = nil
-	end
-
-	isReloading = false
+	stopAll()
 	hs.alert.show("🛑 ĐÃ DỪNG TẤT CẢ VÒNG LẶP!", 1.5)
+end)
+
+-- ==========================================
+-- 4. ĐỔI BLOCK A <-> B (Bấm Cmd + Option + Ctrl + M)
+-- Nếu đang chạy thì tự động dừng block cũ và chạy block mới
+-- ==========================================
+hs.hotkey.bind({ "cmd", "option", "ctrl" }, "M", function()
+	local wasRunning = (loopTimer ~= nil) or (reloadTimer ~= nil)
+	stopAll()
+
+	currentMode = (currentMode == "A") and "B" or "A"
+	hs.alert.show("🔀 Đã chuyển sang BLOCK " .. currentMode, 1.5)
+
+	if wasRunning then
+		startCurrentMode()
+	end
 end)
