@@ -21,8 +21,28 @@ resize_mode = "prefix+r"
 previous_workspace = "prefix+up"
 next_workspace = "prefix+down"
 
+# Jump to workspace N: prefix, then shift+1..9
+switch_workspace = "prefix+shift+1..9"
+
 # Direct resize, no mode needed
 resize_pane_left = "ctrl+shift+alt+left"
 resize_pane_right = "ctrl+shift+alt+right"
 resize_pane_up = "ctrl+shift+alt+up"
 resize_pane_down = "ctrl+shift+alt+down"
+
+# Reorder the active tab: toward the front / back
+move_tab_previous = "prefix+shift+h"
+move_tab_next = "prefix+shift+l"
+
+# Reorder the active workspace: prefix, then u (up) / d (down)
+[[keys.command]]
+key = "prefix+u"
+type = "shell"
+command = "$HOME/.local/bin/herdr-ws-move up"
+description = "move workspace up"
+
+[[keys.command]]
+key = "prefix+d"
+type = "shell"
+command = "$HOME/.local/bin/herdr-ws-move down"
+description = "move workspace down"
