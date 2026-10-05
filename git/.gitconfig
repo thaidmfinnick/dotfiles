@@ -1,5 +1,3 @@
-[user]
-	name = thaidmfinnick
 [core]
 	editor = nvim
 [alias]
@@ -19,6 +17,6 @@
 [http]
 	version = HTTP/1.1
 
-# Machine-specific overrides (work email, url rewrites, ...)
+# Machine-specific overrides (user name/email, work email, url rewrites, ...)
 [include]
 	path = ~/.gitconfig.local
