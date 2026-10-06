@@ -489,6 +489,7 @@ headline-preexec() {
 add-zsh-hook precmd headline-precmd
 headline-precmd() {
   local -i err=$?
+  setopt local_options no_prompt_subst
   local -i trunc_initial_length=$(( $HL_TRUNC_INITIAL + ${#HL_TRUNC_SYMBOL} ))
   local -i trunc_removal_length=$(( $HL_TRUNC_REMOVAL + ${#HL_TRUNC_SYMBOL} ))
 

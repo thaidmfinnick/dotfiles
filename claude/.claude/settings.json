@@ -5,12 +5,25 @@
   "permissions": {
     "defaultMode": "auto"
   },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "^(startup|resume|clear|compact|fork)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/herdr-agent-state.sh session",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
   "statusLine": {
     "type": "command",
     "command": "~/.claude/scripts/context-bar.sh"
   },
   "enabledPlugins": {
-    "swift-lsp@claude-plugins-official": true,
     "figma@claude-plugins-official": true,
     "mattpocock-skills@claude-plugins-official": true,
     "ui-ux-pro-max@ui-ux-pro-max-skill": true
@@ -31,6 +44,5 @@
   },
   "effortLevel": "medium",
   "editorMode": "vim",
-  "skipAutoPermissionPrompt": true,
-  "hooks": {"SessionStart":[{"matcher":"^(startup|resume|clear|compact|fork)$","hooks":[{"type":"command","command":"bash ~/.claude/hooks/herdr-agent-state.sh session","timeout":10}]}]}
+  "skipAutoPermissionPrompt": true
 }
