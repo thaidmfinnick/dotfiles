@@ -26,7 +26,9 @@
   "enabledPlugins": {
     "figma@claude-plugins-official": true,
     "mattpocock-skills@claude-plugins-official": true,
-    "ui-ux-pro-max@ui-ux-pro-max-skill": true
+    "ui-ux-pro-max@ui-ux-pro-max-skill": true,
+    "pw@pancake-work": true,
+    "tn@talent-netzwerk-kit": true
   },
   "extraKnownMarketplaces": {
     "humanizer": {
@@ -40,9 +42,37 @@
         "source": "github",
         "repo": "nextlevelbuilder/ui-ux-pro-max-skill"
       }
+    },
+    "pancake-work": {
+      "source": {
+        "source": "directory",
+        "path": "/Users/admin/Data/projects/pancake-work/pancake-work-claude-plugins"
+      }
+    },
+    "talent-netzwerk-kit": {
+      "source": {
+        "source": "directory",
+        "path": "/Users/admin/Data/projects/talent/talent-netzwerk-kit"
+      }
     }
   },
   "effortLevel": "medium",
+  "pluginConfigs": {
+    "pw@pancake-work": {
+      "options": {
+        "autonomy": "checkpoints",
+        "api_repo_path": "/Users/admin/Data/projects/pancake-work/pancake-work-api",
+        "client_repo_path": "/Users/admin/Data/projects/pancake-work/pancake-work-client",
+        "panchat_user_name": "Thái Đồng",
+        "panchat_user_id": "a063503d-998e-4e15-87b6-80820fd1b729",
+        "panchat_workspace_id": "4",
+        "panchat_task_channel_name": "pancake_work_support",
+        "panchat_task_channel_id": "2818",
+        "panchat_digest_channel_id": "14738",
+        "panchat_app_base_url": "https://pancakework.vn"
+      }
+    }
+  },
   "editorMode": "vim",
   "skipAutoPermissionPrompt": true
 }

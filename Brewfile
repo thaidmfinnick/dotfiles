@@ -3,12 +3,12 @@
 # Install: brew bundle --file=Brewfile
 
 # Shell & core CLI
-brew "stow"
+brew "stow"            # symlink manager for these dotfiles
 brew "zsh-vi-mode"
-brew "fzf"
+brew "fzf"             # fuzzy finder
 brew "fd"
-brew "ripgrep"
-brew "jq"
+brew "ripgrep"         # fast grep
+brew "jq"              # JSON processor
 brew "yq"
 brew "tree"
 brew "watch"
@@ -16,8 +16,8 @@ brew "watchexec"
 brew "telnet"
 
 # Git
-brew "gh"
-brew "lazygit"
+brew "gh"              # GitHub CLI
+brew "lazygit"        # git TUI
 brew "difftastic"
 brew "git-crypt"
 

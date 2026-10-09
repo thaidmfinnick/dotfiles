@@ -1,0 +1,21 @@
+# Packages installed through apt on Debian/Ubuntu (WSL2). Counterpart of Brewfile.
+# Tools installed another way (mise, zoxide, uv, claude, nvim) are handled in install.sh.
+# Install: ./install.sh   or   dot add <package>
+
+# Shell & core CLI
+zsh
+stow
+curl
+git
+unzip
+build-essential
+fzf
+fd-find
+ripgrep
+jq
+tree
+watch
+telnet
+
+# Git
+gh

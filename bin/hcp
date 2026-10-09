@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# hcp <pane-label> [lines=20] — print the last N lines of a herdr pane by its label
+set -euo pipefail
+name="${1:?usage: hcp <pane-label> [lines]}"; lines="${2:-20}"
+id=$(herdr pane list | jq -r --arg n "$name" '[.result.panes[] | select(.label==$n)][0].pane_id // empty')
+[ -n "$id" ] || { echo "no pane labeled '$name'" >&2; exit 1; }
+herdr pane read "$id" --source recent --lines "$lines"

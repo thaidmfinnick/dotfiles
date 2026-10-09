@@ -1,0 +1,36 @@
+# Apps installed through winget on Windows (Git Bash). Counterpart of Brewfile / Aptfile.
+# Format: <winget id> | <description> | <on|off = preselected in the install menu>
+# Add one from the shell with: dot add <winget id>      (find ids with: winget search <name>)
+
+# Terminal & shell tools
+Microsoft.WindowsTerminal | Terminal | on
+junegunn.fzf | Fuzzy finder | on
+BurntSushi.ripgrep.MSVC | ripgrep | on
+sharkdp.fd | fd | on
+jqlang.jq | jq | on
+ajeetdsouza.zoxide | Smarter cd | on
+astral-sh.uv | Python package manager | on
+
+# Git
+GitHub.cli | gh | on
+JesseDuffield.lazygit | Git TUI | on
+Git.Git | Git for Windows | off
+
+# Development
+jdx.mise | Language runtime manager (node, elixir, ...) | on
+Neovim.Neovim | Editor | on
+Anthropic.ClaudeCode | Claude Code | on
+Microsoft.VisualStudioCode | Editor | off
+Docker.DockerDesktop | Containers | off
+Postman.Postman | API client | off
+GoLang.Go | Go | off
+Python.Python.3.12 | Python 3.12 | off
+Google.AndroidStudio | Android builds | off
+
+# Everyday
+Google.Chrome | Browser | off
+AgileBits.1Password | Passwords | off
+AgileBits.1Password.CLI | 1Password CLI (op) | off
+Obsidian.Obsidian | Notes | off
+Figma.Figma | Design | off
+Anthropic.Claude | Claude desktop app | off

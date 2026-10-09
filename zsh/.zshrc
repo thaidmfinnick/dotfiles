@@ -21,3 +21,6 @@ for file in ${(M)config_files:#*/completion.zsh}; do source $file; done
 unset file config_files
 
 [[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
+
+# Pancake Work agent-team orchestrator (pw plugin)
+alias pw='claude --agent pw:orchestrator'

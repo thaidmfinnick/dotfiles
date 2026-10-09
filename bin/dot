@@ -11,8 +11,35 @@ Usage: dot [command]
   (none)    pull, install/link everything, upgrade mise tools
   edit      open the repo in \$EDITOR
   macos     apply macos/defaults.sh
-  dump      show installed brew packages missing from the Brewfile
+  add PKG.. install packages and record them in the Brewfile (macOS) / Aptfile (Linux) / Winfile (Windows, PKG = winget id)
+              dot add ripgrep jq
+              dot add --cask raycast     (macOS apps)
+  list      show the packages tracked for this OS
+  dump      show installed packages missing from the Brewfile / Aptfile
 EOF
+}
+
+case "$(uname -s)" in
+  Darwin) LISTFILE="$DOTFILES/Brewfile" ;;
+  MINGW*|MSYS*|CYGWIN*) LISTFILE="$DOTFILES/Winfile" ;;
+  *) LISTFILE="$DOTFILES/Aptfile" ;;
+esac
+
+# Install one package, then append it to the list file if not already there
+add_pkg() {
+  local cask="$1" pkg="$2" line
+  if [[ "$LISTFILE" == *Winfile ]]; then
+    winget install -e --id "$pkg" --accept-package-agreements --accept-source-agreements
+    line="$pkg | added with dot add | on"
+    grep -qE "^$pkg[[:space:]]*\|" "$LISTFILE" && line="$pkg"   # already listed
+  elif [[ "$LISTFILE" == *Brewfile ]]; then
+    if [[ "$cask" == 1 ]]; then brew install --cask "$pkg"; line="cask \"$pkg\""
+    else brew install "$pkg"; line="brew \"$pkg\""; fi
+  else
+    sudo apt-get install -y "$pkg"; line="$pkg"
+  fi
+  if grep -qxF "$line" "$LISTFILE" || [[ "$line" == "$pkg" && "$LISTFILE" == *Winfile ]]; then echo "dot: $pkg already in $(basename "$LISTFILE")"
+  else echo "$line" >> "$LISTFILE"; echo "dot: added $pkg to $(basename "$LISTFILE")"; fi
 }
 
 case "${1:-}" in
@@ -23,10 +50,27 @@ case "${1:-}" in
     ;;
   edit)  exec "${EDITOR:-nvim}" "$DOTFILES" ;;
   macos) "$DOTFILES/macos/defaults.sh" ;;
+  add)
+    shift
+    cask=0
+    [[ "${1:-}" == --cask ]] && { cask=1; shift; }
+    [[ $# -gt 0 ]] || { usage; exit 1; }
+    [[ "$cask" == 1 && "$LISTFILE" != *Brewfile ]] && { echo "dot: --cask is macOS only" >&2; exit 1; }
+    for pkg in "$@"; do add_pkg "$cask" "$pkg"; done
+    ;;
+  list) grep -vE '^\s*(#|$)' "$LISTFILE" ;;
   dump)
-    comm -13 \
-      <(grep -oE '^(brew|cask) "[^"]+"' "$DOTFILES/Brewfile" | sed -E 's/.*"(.*)"/\1/; s#.*/##' | sort) \
-      <({ brew leaves --installed-on-request; brew list --cask; } | sed 's#.*/##' | sort)
+    if [[ "$LISTFILE" == *Winfile ]]; then
+      echo "dot: dump is not supported on Windows (try: winget list)" >&2; exit 1
+    elif [[ "$LISTFILE" == *Brewfile ]]; then
+      comm -13 \
+        <(grep -oE '^(brew|cask) "[^"]+"' "$LISTFILE" | sed -E 's/.*"(.*)"/\1/; s#.*/##' | sort) \
+        <({ brew leaves --installed-on-request; brew list --cask; } | sed 's#.*/##' | sort)
+    else
+      comm -13 \
+        <(grep -vE '^\s*(#|$)' "$LISTFILE" | sed 's/#.*//; s/ //g' | sort) \
+        <(apt-mark showmanual | sort)
+    fi
     ;;
   -h|--help) usage ;;
   *) usage; exit 1 ;;

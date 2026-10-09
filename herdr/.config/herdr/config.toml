@@ -11,6 +11,7 @@ pane_borders = "always"
 pane_outer_borders = true
 pane_gaps = false
 
+status_indicators = "symbols"
 [keys]
 prefix = "ctrl+w"
 
@@ -46,3 +47,6 @@ key = "prefix+d"
 type = "shell"
 command = "$HOME/.local/bin/herdr-ws-move down"
 description = "move workspace down"
+
+[ui.toast]
+delivery = "herdr"
