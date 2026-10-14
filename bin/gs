@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+# gs - list git repos with branch, remote sync and working-tree state.
+#
+# Usage:
+#   gs                 immediate children of the current folder
+#   gs <path>...       scan <path> recursively
+#   gs <pattern>...    not an existing dir: recursive scan of cwd for repo
+#                         folders whose name matches the glob (e.g. 'talent*')
+#   gs -d N ...        max recursion depth (default 5)
+#   gs -f ...          git fetch each repo first (slower, accurate ahead/behind)
+#   gs -D ...          only repos that are not clean (changes, or ahead/behind)
+#   gs -g ...          pick a repo from the list with fzf and open lazygit in it
+#                         (combines with the other options: gs -g, gs -ga, gs -gD <path>)
+#   gs -l ...          print repo paths only (for scripts / fzf)
+#   gs -a              whole machine: scan $GS_ROOTS (default ~/Data), not-clean only
+
+depth=5; fetch=0; dirty_only=0; all=0; list=0; go=0
+while getopts "d:fDalgh" o; do
+  case $o in
+    d) depth=$OPTARG ;; f) fetch=1 ;; D) dirty_only=1 ;; a) all=1; dirty_only=1 ;; l) list=1 ;; g) go=1 ;;
+    *) sed -n '2,17p' "$0"; exit 0 ;;
+  esac
+done
+shift $((OPTIND - 1))
+
+if ((go)); then
+  args=(-l -d "$depth"); ((all)) && args+=(-a); ((dirty_only && !all)) && args+=(-D); ((fetch)) && args+=(-f)
+  repo=$("$0" "${args[@]}" "$@" | fzf --height=60% --reverse --prompt='lazygit> ' --select-1 --exit-0 \
+    --preview='d={}; d="${d/#\~/$HOME}"; git -C "$d" status -sb; echo; git -C "$d" log --oneline --color=always -8' \
+    --preview-window=right,50%) || exit
+  exec lazygit -p "${repo/#\~/$HOME}"
+fi
+
+R=$'\e[31m'; G=$'\e[32m'; Y=$'\e[33m'; C=$'\e[36m'; D=$'\e[2m'; B=$'\e[1m'; N=$'\e[0m'
+
+repos=()
+find_repos() { # $1 = root, $2 = optional name glob
+  find "$1" -maxdepth "$depth" \( -name node_modules -o -name .venv -o -name Pods \) -prune \
+       -o -name .git -print 2>/dev/null | while read -r g; do
+    d=$(dirname "$g")
+    [[ -z $2 || $(basename "$d") == $2 ]] && echo "$d"
+  done
+}
+
+if ((all)); then
+  for root in ${GS_ROOTS:-$HOME/Data}; do
+    while IFS= read -r r; do repos+=("$r"); done < <(find_repos "$root")
+  done
+elif [[ $# -eq 0 ]]; then
+  for d in */; do [[ -e $d/.git ]] && repos+=("${d%/}"); done
+else
+  for arg in "$@"; do
+    if [[ -d $arg ]]; then
+      while IFS= read -r r; do repos+=("$r"); done < <(find_repos "$arg")
+    else
+      while IFS= read -r r; do repos+=("$r"); done < <(find_repos . "$arg")
+    fi
+  done
+fi
+
+if [[ ${#repos[@]} -eq 0 ]]; then echo "no git repos found"; exit 1; fi
+
+((list)) || printf "${B}%-52s %-20s %-10s %-14s %s${N}\n" REPO BRANCH SYNC CHANGES REMOTE
+for r in $(printf '%s\n' "${repos[@]}" | sort -u | tr ' ' '\001'); do
+  r=${r//$'\001'/ }
+  ((fetch)) && git -C "$r" fetch -q 2>/dev/null
+  disp=${r/#$HOME/\~}
+  branch=$(git -C "$r" symbolic-ref --short -q HEAD || echo "@$(git -C "$r" rev-parse --short HEAD 2>/dev/null)")
+  remote=$(git -C "$r" remote get-url origin 2>/dev/null | sed -E 's#^(git@[^:]+:|https?://[^/]+/)##; s#\.git$##')
+  [[ -z $remote ]] && remote="${D}(no remote)${N}"
+
+  # sync with upstream
+  if up=$(git -C "$r" rev-parse --abbrev-ref '@{u}' 2>/dev/null); then
+    read -r ahead behind < <(git -C "$r" rev-list --left-right --count "HEAD...$up")
+    if   ((ahead && behind)); then sync="${R}↑$ahead ↓$behind${N}"; scol=$R
+    elif ((ahead));           then sync="${Y}↑$ahead${N}";          scol=$Y
+    elif ((behind));          then sync="${Y}↓$behind${N}";         scol=$Y
+    else                           sync="${G}synced${N}";           scol=$G; fi
+  else
+    sync="${D}no upstream${N}"; scol=$Y
+  fi
+
+  # working tree: staged / unstaged / untracked
+  st=$(git -C "$r" status --porcelain 2>/dev/null)
+  staged=$(grep -c '^[MADRC]' <<<"$st"); unstaged=$(grep -c '^.[MD]' <<<"$st"); untracked=$(grep -c '^??' <<<"$st")
+  if [[ -z $st ]]; then
+    ((dirty_only)) && [[ $scol == "$G" ]] && continue
+    changes="${G}clean${N}"; name="${G}${disp}${N}"
+  else
+    changes=""
+    ((staged))    && changes+="${G}+$staged${N} "
+    ((unstaged))  && changes+="${R}~$unstaged${N} "
+    ((untracked)) && changes+="${Y}?$untracked${N}"
+    if ((unstaged || staged)); then name="${R}${disp}${N}"; else name="${Y}${disp}${N}"; fi
+  fi
+
+  if ((list)); then echo "$disp"; continue; fi
+
+  # pad manually: colour codes break printf widths
+  strip() { sed $'s/\e\\[[0-9;]*m//g' <<<"$1"; }
+  pad() { local plain; plain=$(strip "$1"); printf "%s%*s " "$1" $(( $2 - ${#plain} )) ""; }
+  pad "$name" 52; pad "${C}${branch}${N}" 20; pad "$sync" 10; pad "$changes" 14
+  printf "%s\n" "$remote"
+done
+((list)) || printf "\n${D}+staged  ~unstaged  ?untracked  ↑ahead ↓behind  |  green=clean  yellow=untracked/unsynced  red=changes/diverged${N}\n"
