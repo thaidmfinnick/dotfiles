@@ -60,12 +60,22 @@ fi
 
 if [[ ${#repos[@]} -eq 0 ]]; then echo "no git repos found"; exit 1; fi
 
-((list)) || printf "${B}%-52s %-20s %-10s %-14s %s${N}\n" REPO BRANCH SYNC CHANGES REMOTE
+W_REPO=52; W_BRANCH=20; W_SYNC=12; W_CHG=14
+# cut to a fixed width with an ellipsis: keep the tail (l) or the head (r)
+trunc() { # $1 = text, $2 = width, $3 = l|r
+  local t=$1 w=$2
+  if ((${#t} <= w)); then printf '%s' "$t"
+  elif [[ $3 == l ]]; then printf '…%s' "${t: -$((w - 1))}"
+  else printf '%s…' "${t:0:$((w - 1))}"; fi
+}
+((list)) || printf "${B}%-${W_REPO}s %-${W_BRANCH}s %-${W_SYNC}s %-${W_CHG}s %s${N}\n" REPO BRANCH SYNC CHANGES REMOTE
 for r in $(printf '%s\n' "${repos[@]}" | sort -u | tr ' ' '\001'); do
   r=${r//$'\001'/ }
   ((fetch)) && git -C "$r" fetch -q 2>/dev/null
   disp=${r/#$HOME/\~}
+  ((list)) || disp=$(trunc "$disp" "$W_REPO" l)
   branch=$(git -C "$r" symbolic-ref --short -q HEAD || echo "@$(git -C "$r" rev-parse --short HEAD 2>/dev/null)")
+  branch=$(trunc "$branch" "$W_BRANCH" r)
   remote=$(git -C "$r" remote get-url origin 2>/dev/null | sed -E 's#^(git@[^:]+:|https?://[^/]+/)##; s#\.git$##')
   [[ -z $remote ]] && remote="${D}(no remote)${N}"
 
@@ -99,7 +109,7 @@ for r in $(printf '%s\n' "${repos[@]}" | sort -u | tr ' ' '\001'); do
   # pad manually: colour codes break printf widths
   strip() { sed $'s/\e\\[[0-9;]*m//g' <<<"$1"; }
   pad() { local plain; plain=$(strip "$1"); printf "%s%*s " "$1" $(( $2 - ${#plain} )) ""; }
-  pad "$name" 52; pad "${C}${branch}${N}" 20; pad "$sync" 10; pad "$changes" 14
+  pad "$name" "$W_REPO"; pad "${C}${branch}${N}" "$W_BRANCH"; pad "$sync" "$W_SYNC"; pad "$changes" "$W_CHG"
   printf "%s\n" "$remote"
 done
 ((list)) || printf "\n${D}+staged  ~unstaged  ?untracked  ↑ahead ↓behind  |  green=clean  yellow=untracked/unsynced  red=changes/diverged${N}\n"
