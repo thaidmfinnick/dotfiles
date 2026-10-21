@@ -1,0 +1,244 @@
+#!/usr/bin/env bash
+# dc: list, open and delete things that take disk space and can be regenerated
+set -euo pipefail
+
+CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/dc"
+LIST="$CACHE_DIR/list.tsv"
+ROOTS="${DC_ROOTS:-$HOME/Data/projects}"
+MIN_MB="${DC_MIN_MB:-100}"
+MISE_INSTALLS="${MISE_DATA_DIR:-$HOME/.local/share/mise}/installs"
+
+usage() {
+  cat <<EOF
+Usage: dc [command]
+
+  (none)       show the saved list (scans first if there is none)
+  list         scan and show a numbered list, biggest first
+  N            open item N in Finder
+  delete N..   delete items after confirmation
+                 dc delete 3      dc delete 1 4 7      dc delete 2-5
+
+Numbers refer to the last 'dc list'. Nothing is deleted without a y/N prompt.
+Env: DC_ROOTS  project roots to scan, ':'-separated (default ~/Data/projects)
+     DC_MIN_MB hide items smaller than this (default 100)
+EOF
+}
+
+# List file columns: kb, group, action, path, label, status
+CANDS=""
+
+# add GROUP ACTION PATH [LABEL] — record a candidate if the path exists
+add() {
+  if [ -e "$3" ]; then printf '%s\t%s\t%s\t%s\n' "$1" "$2" "$3" "${4:-}" >>"$CANDS"; fi
+}
+
+scan_xcode() {
+  local d="$HOME/Library/Developer" x
+  add Xcode rm "$d/Xcode/DerivedData" "Xcode DerivedData"
+  for x in "$d"/Xcode/*DeviceSupport; do add Xcode rm "$x" "Xcode ${x##*/}"; done
+  add Xcode trash "$d/Xcode/Archives" "Xcode Archives (moved to Trash)"
+  add Xcode rm "$d/CoreSimulator/Caches" "Simulator caches"
+  add Xcode simctl "$d/CoreSimulator/Devices" "Simulators (deletes unavailable ones only)"
+}
+
+scan_builds() {
+  local root p parent name ok
+  local IFS=:
+  for root in $ROOTS; do
+    [ -d "$root" ] || continue
+    { find "$root" -type d \( -name .git -o -name node_modules -o -name .dart_tool -o -name build \
+      -o -name _build -o -name deps -o -name .lexical -o -name .elixir_ls -o -name Pods \) -prune -print 2>/dev/null ||
+      true; } |
+      while IFS= read -r p; do
+        parent="${p%/*}" name="${p##*/}" ok=""
+        case "$name" in
+          node_modules) [ -f "$parent/package.json" ] && ok=1 ;;
+          .dart_tool | build) [ -f "$parent/pubspec.yaml" ] && ok=1 ;;
+          _build | deps | .lexical | .elixir_ls) [ -f "$parent/mix.exs" ] && ok=1 ;;
+          Pods) [ -f "$parent/Podfile" ] && ok=1 ;;
+        esac
+        if [ -n "$ok" ]; then add Build rm "$p" "${p#"$HOME"/}"; fi
+      done
+  done
+}
+
+# Only versions `mise prune` says no config file needs
+scan_mise() {
+  command -v mise >/dev/null || return 0
+  local tv
+  { mise prune --dry-run 2>/dev/null || true; } | sed -n 's/^mise \(.*\) is prunable:.*/\1/p' |
+    while IFS= read -r tv; do
+      add Mise mise "$MISE_INSTALLS/${tv%@*}/${tv#*@}" "mise $tv (unused)"
+    done
+}
+
+scan_caches() {
+  local p
+  add Caches rm "$HOME/.npm/_cacache" "npm cache"
+  add Caches rm "$HOME/.gradle/caches" "Gradle caches"
+  add Caches rm "$HOME/.pub-cache" "Dart pub cache (run pub get again after)"
+  for p in "$HOME/Library/Caches"/* "$HOME/.cache"/*; do
+    if [ "$p" != "$CACHE_DIR" ]; then add Caches rm "$p"; fi
+  done
+}
+
+scan_downloads() {
+  local p
+  for p in "$HOME/Downloads"/*; do add Downloads trash "$p" "${p#"$HOME"/} (moved to Trash)"; done
+}
+
+scan_trash() {
+  add Trash empty-trash "$HOME/.Trash" "Trash (empty it)"
+}
+
+# Docker reports its own reclaimable size, so it skips du
+scan_docker() {
+  command -v docker >/dev/null && docker info >/dev/null 2>&1 || return 0
+  docker system df --format '{{.Type}}|{{.Reclaimable}}' | awk -F'|' '
+    $1 == "Images" || $1 == "Build Cache" {
+      split($2, a, " "); v = a[1]; n = v + 0; u = v; sub(/^[0-9.]+/, "", u)
+      m = (u == "kB") ? 1 : (u == "MB") ? 1024 : (u == "GB") ? 1048576 : (u == "TB") ? 1073741824 : 1 / 1024
+      kb += n * m
+    }
+    END { printf "%d\tDocker\tdocker\t-\tDocker unused images + build cache\t\n", kb }'
+}
+
+tilde() {
+  local t='~'
+  printf '%s' "${1/#$HOME/$t}"
+}
+
+human() {
+  awk -v kb="$1" 'BEGIN {
+    if (kb >= 1048576) printf "%.1fG", kb / 1048576
+    else if (kb >= 1024) printf "%.0fM", kb / 1024
+    else printf "%dK", kb }'
+}
+
+show_list() {
+  [ -s "$LIST" ] || { echo "Nothing found."; return; }
+  local home="$HOME"
+  awk -F'\t' -v home="$home" '
+    function h(kb) {
+      if (kb >= 1048576) return sprintf("%.1fG", kb / 1048576)
+      if (kb >= 1024) return sprintf("%.0fM", kb / 1024)
+      return sprintf("%dK", kb)
+    }
+    {
+      label = $5; if (label == "") { label = $4; sub("^" home "/", "~/", label) }
+      if ($6 == "deleted") { printf "%3d  %-9s %7s  %s  (deleted)\n", NR, $2, "-", label; next }
+      printf "%3d  %-9s %7s  %s\n", NR, $2, h($1), label; total += $1
+    }
+    END { printf "\n     Total %s\n", h(total) }' "$LIST"
+}
+
+scan() {
+  mkdir -p "$CACHE_DIR"
+  local tmp
+  tmp="$(mktemp -d)"
+  CANDS="$tmp/cands"
+  : >"$CANDS"
+  echo "Scanning Xcode, projects ($ROOTS), mise, caches, Downloads, Trash, Docker..." >&2
+  scan_xcode
+  scan_builds
+  scan_mise
+  scan_caches
+  scan_downloads
+  scan_trash
+  echo "Measuring $(wc -l <"$CANDS" | tr -d ' ') folders (this can take a few minutes)..." >&2
+  cut -f3 "$CANDS" | tr '\n' '\0' | xargs -0 -n 1 -P 8 du -sk 2>/dev/null >"$tmp/sizes" || true
+  {
+    awk -F'\t' 'NR == FNR { s[$2] = $1; next } ($3 in s) { print s[$3] "\t" $0 "\t" }' "$tmp/sizes" "$CANDS"
+    scan_docker
+  } | awk -F'\t' -v min="$((MIN_MB * 1024))" '$1 >= min' | sort -t$'\t' -k1,1nr >"$LIST"
+  rm -rf "$tmp"
+  show_list
+}
+
+# row N — load item N of the saved list into kb, group, action, path, label, status
+row() {
+  case "$1" in '' | *[!0-9]*) echo "Not a number: $1" >&2; exit 1 ;; esac
+  [ -s "$LIST" ] || { echo "No saved list, run 'dc list' first." >&2; exit 1; }
+  local r
+  r="$(sed -n "${1}p" "$LIST")"
+  [ -n "$r" ] || { echo "No item $1 (run 'dc' to see the list)." >&2; exit 1; }
+  IFS=$'\t' read -r kb group action path label status <<<"$r"
+}
+
+open_item() {
+  local kb group action path label status
+  row "$1"
+  case "$action" in
+    docker) open -a Docker ;;
+    *)
+      [ -e "$path" ] || { echo "Gone: $path" >&2; exit 1; }
+      if [ -d "$path" ]; then open "$path"; else open -R "$path"; fi
+      ;;
+  esac
+}
+
+# Refuse anything outside $HOME, so a bad list file can't point rm elsewhere
+safe_path() {
+  case "$1" in "$HOME"/?*) [ -e "$1" ] ;; *) false ;; esac
+}
+
+delete_one() {
+  local action="$1" path="$2" label="$3"
+  if [ "$action" != docker ] && ! safe_path "$path"; then
+    echo "  skip (missing or outside home): $path" >&2
+    return 1
+  fi
+  case "$action" in
+    rm) rm -rf "$path" ;;
+    trash) /usr/bin/trash "$path" ;;
+    mise) label="${label#mise }" && mise uninstall "${label% (unused)}" ;;
+    simctl) xcrun simctl delete unavailable ;;
+    empty-trash) osascript -e 'tell application "Finder" to empty trash' ;;
+    docker) docker image prune -a -f && docker builder prune -f ;;
+    *) echo "  unknown action: $action" >&2; return 1 ;;
+  esac
+}
+
+delete_items() {
+  [ $# -gt 0 ] || { echo "Usage: dc delete N.." >&2; exit 1; }
+  local nums=() a n total=0 kb group action path label status
+  for a in "$@"; do
+    case "$a" in
+      *-*) for n in $(seq "${a%-*}" "${a#*-}"); do nums+=("$n"); done ;;
+      *) nums+=("$a") ;;
+    esac
+  done
+
+  echo "About to delete:"
+  for n in "${nums[@]}"; do
+    row "$n"
+    [ "$status" = deleted ] && { echo "  $n is already deleted" >&2; exit 1; }
+    printf '  %3d  %7s  %s\n' "$n" "$(human "$kb")" "${label:-$(tilde "$path")}"
+    if [ "$action" != docker ] && [ -n "$label" ]; then printf '                 %s\n' "$(tilde "$path")"; fi
+    total=$((total + kb))
+  done
+  printf '\nFrees about %s. Delete %d item(s)? [y/N] ' "$(human "$total")" "${#nums[@]}"
+  read -r a
+  case "$a" in y | Y | yes) ;; *) echo "Cancelled."; exit 0 ;; esac
+
+  local done_nums=" "
+  for n in "${nums[@]}"; do
+    row "$n"
+    echo "Deleting $n: ${label:-$(tilde "$path")}"
+    if delete_one "$action" "$path" "$label"; then done_nums="$done_nums$n "; fi
+  done
+
+  # Mark deleted rows instead of removing them, so numbers stay stable until the next scan
+  awk -F'\t' -v OFS='\t' -v d="$done_nums" 'index(d, " " NR " ") { $6 = "deleted" } { print }' "$LIST" >"$LIST.tmp"
+  mv "$LIST.tmp" "$LIST"
+  echo "Done."
+}
+
+case "${1:-}" in
+  "") if [ -s "$LIST" ]; then echo "Saved list from $(date -r "$LIST" '+%Y-%m-%d %H:%M') ('dc list' to rescan):"; show_list; else scan; fi ;;
+  list | ls) scan ;;
+  delete | rm | del) shift; delete_items "$@" ;;
+  -h | --help | help) usage ;;
+  *[!0-9]*) usage; exit 1 ;;
+  *) open_item "$1" ;;
+esac
