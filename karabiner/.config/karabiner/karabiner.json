@@ -4,25 +4,23 @@
             "complex_modifications": {
                 "rules": [
                     {
-                        "description": "; to :",
+                        "description": "Swap ; and :",
                         "manipulators": [
                             {
                                 "from": {
                                     "key_code": "semicolon",
-                                    "modifiers": { "mandatory": ["shift"] }
+                                    "modifiers": {
+                                        "mandatory": ["shift"],
+                                        "optional": ["caps_lock"]
+                                    }
                                 },
                                 "to": [{ "key_code": "semicolon" }],
                                 "type": "basic"
-                            }
-                        ]
-                    },
-                    {
-                        "description": "shift : to ;",
-                        "manipulators": [
+                            },
                             {
                                 "from": {
                                     "key_code": "semicolon",
-                                    "modifiers": { "optional": ["any"] }
+                                    "modifiers": { "optional": ["caps_lock"] }
                                 },
                                 "to": [
                                     {
@@ -30,14 +28,6 @@
                                         "modifiers": ["left_shift"]
                                     }
                                 ],
-                                "type": "basic"
-                            },
-                            {
-                                "from": {
-                                    "key_code": "semicolon",
-                                    "modifiers": { "mandatory": ["shift"] }
-                                },
-                                "to": [{ "key_code": "semicolon" }],
                                 "type": "basic"
                             }
                         ]

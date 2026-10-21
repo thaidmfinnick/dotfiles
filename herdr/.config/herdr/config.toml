@@ -18,9 +18,11 @@ prefix = "ctrl+w"
 # Resize mode: prefix, then r, then arrows
 resize_mode = "prefix+r"
 
-# Workspace switching: prefix, then up/down
-previous_workspace = "prefix+up"
-next_workspace = "prefix+down"
+# Workspace / tab switching: Ctrl+Option + hjkl, no prefix
+previous_workspace = "ctrl+alt+k"
+next_workspace = "ctrl+alt+j"
+previous_tab = "ctrl+alt+h"
+next_tab = "ctrl+alt+l"
 
 # Jump to workspace N: prefix, then shift+1..9
 switch_workspace = "prefix+shift+1..9"

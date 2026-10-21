@@ -5,6 +5,7 @@
   "permissions": {
     "defaultMode": "auto"
   },
+  "model": "opus",
   "hooks": {
     "SessionStart": [
       {
@@ -56,6 +57,7 @@
       }
     }
   },
+  "language": "Vietnamese",
   "effortLevel": "medium",
   "pluginConfigs": {
     "pw@pancake-work": {
@@ -71,8 +73,21 @@
         "panchat_digest_channel_id": "14738",
         "panchat_app_base_url": "https://pancakework.vn"
       }
+    },
+    "tn@talent-netzwerk-kit": {
+      "options": {
+        "gmail_address": "info@talent-netzwerk.org",
+        "email_daily_limit": 50,
+        "email_seed_inboxes": "thai.dm279@gmail.com"
+      }
     }
   },
+  "voice": {
+    "enabled": true,
+    "mode": "hold"
+  },
   "editorMode": "vim",
-  "skipAutoPermissionPrompt": true
+  "autoCompactEnabled": true,
+  "skipAutoPermissionPrompt": true,
+  "voiceEnabled": true
 }
