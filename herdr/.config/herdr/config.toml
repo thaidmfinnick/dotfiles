@@ -61,6 +61,31 @@ type = "shell"
 command = "$HOME/Data/projects/personal/dotfiles/bin/herdr-pane-rotate"
 description = "rotate pane split"
 
+# Swap the active pane with its neighbor: prefix, then shift+arrows
+[[keys.command]]
+key = "prefix+shift+left"
+type = "shell"
+command = "$HOME/.local/bin/herdr pane swap --pane \"$HERDR_ACTIVE_PANE_ID\" --direction left"
+description = "swap pane left"
+
+[[keys.command]]
+key = "prefix+shift+down"
+type = "shell"
+command = "$HOME/.local/bin/herdr pane swap --pane \"$HERDR_ACTIVE_PANE_ID\" --direction down"
+description = "swap pane down"
+
+[[keys.command]]
+key = "prefix+shift+up"
+type = "shell"
+command = "$HOME/.local/bin/herdr pane swap --pane \"$HERDR_ACTIVE_PANE_ID\" --direction up"
+description = "swap pane up"
+
+[[keys.command]]
+key = "prefix+shift+right"
+type = "shell"
+command = "$HOME/.local/bin/herdr pane swap --pane \"$HERDR_ACTIVE_PANE_ID\" --direction right"
+description = "swap pane right"
+
 [ui.toast]
 delivery = "herdr"
 
