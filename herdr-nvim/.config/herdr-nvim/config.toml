@@ -1,0 +1,6 @@
+[sidebar]
+nvim_bin = "nvim"
+position = "left"
+
+[picker]
+max_files = 20

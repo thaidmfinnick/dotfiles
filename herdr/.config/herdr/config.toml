@@ -15,6 +15,10 @@ status_indicators = "symbols"
 [keys]
 prefix = "ctrl+w"
 
+# Built-ins moved to shift so herdr-nvim can use prefix+e / prefix+o
+edit_scrollback = "prefix+shift+e"
+open_notification_target = "prefix+shift+o"
+
 # Resize mode: prefix, then r, then arrows
 resize_mode = "prefix+r"
 
@@ -52,3 +56,16 @@ description = "move workspace down"
 
 [ui.toast]
 delivery = "herdr"
+
+# herdr-nvim: nvim sidebar (prefix, then e) and agent-file picker (prefix, then o)
+[[keys.command]]
+key = "prefix+e"
+type = "plugin_action"
+command = "chmarax.herdr-nvim.toggle"
+description = "nvim sidebar"
+
+[[keys.command]]
+key = "prefix+o"
+type = "plugin_action"
+command = "chmarax.herdr-nvim.pick-file"
+description = "open file from agent output"
