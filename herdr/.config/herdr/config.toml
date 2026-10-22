@@ -1,6 +1,6 @@
 onboarding = false
 [theme]
-name = "gruvbox"
+name = "dracula"
 auto_switch = false
 light_name = "catppuccin-latte"
 dark_name = "catppuccin"
