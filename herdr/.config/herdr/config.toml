@@ -54,6 +54,15 @@ type = "shell"
 command = "$HOME/Data/projects/personal/dotfiles/bin/herdr-ws-move down"
 description = "move workspace down"
 
+# Pick a pane in the current tab with fzf: prefix, then f
+[[keys.command]]
+key = "prefix+f"
+type = "popup"
+command = "$HOME/Data/projects/personal/dotfiles/bin/herdr-pane-pick"
+description = "pick pane"
+width = 60
+height = 12
+
 # Rotate the split around the active pane (side-by-side <-> stacked): prefix, then space
 [[keys.command]]
 key = "prefix+space"

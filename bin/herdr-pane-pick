@@ -1,0 +1,73 @@
+#!/usr/bin/env python3
+"""Pick a pane in the current herdr tab with fzf and focus it.
+
+Usage:
+  herdr-pane-pick          pick among the panes of the active pane's tab
+
+Panes are listed top-left first, named by their label, terminal title,
+agent or cwd. Meant to run in a herdr popup bound to a key.
+"""
+import json
+import os
+import socket
+import subprocess
+import sys
+
+SOCKET = os.environ.get("HERDR_SOCKET_PATH") or os.path.expanduser("~/.config/herdr/herdr.sock")
+
+
+def rpc(method, params):
+    with socket.socket(socket.AF_UNIX) as sock:
+        sock.connect(SOCKET)
+        sock.sendall((json.dumps({"id": "pane-pick", "method": method, "params": params}) + "\n").encode())
+        buf = b""
+        while not buf.endswith(b"\n"):
+            chunk = sock.recv(65536)
+            if not chunk:
+                break
+            buf += chunk
+    resp = json.loads(buf)
+    if "error" in resp:
+        sys.exit(f"herdr-pane-pick: {resp['error']}")
+    return resp["result"]
+
+
+def name(pane):
+    return (
+        pane.get("label")
+        or pane.get("terminal_title_stripped")
+        or pane.get("agent")
+        or os.path.basename(pane.get("foreground_cwd") or pane.get("cwd") or "")
+        or pane["pane_id"]
+    )
+
+
+def main(argv):
+    if argv:
+        sys.exit(__doc__)
+    pane_id = os.environ.get("HERDR_ACTIVE_PANE_ID") or os.environ.get("HERDR_PANE_ID")
+    if not pane_id:
+        sys.exit("herdr-pane-pick: no pane id (not inside herdr?)")
+
+    layout = rpc("pane.layout", {"pane_id": pane_id})["layout"]
+    panes = sorted(layout["panes"], key=lambda p: (p["rect"]["y"], p["rect"]["x"]))
+    lines = []
+    for p in panes:
+        info = rpc("pane.get", {"pane_id": p["pane_id"]})["pane"]
+        mark = "●" if p["pane_id"] == layout["focused_pane_id"] else " "
+        lines.append(f"{p['pane_id']}\t{mark} {name(info)}")
+
+    picked = subprocess.run(
+        ["fzf", "--delimiter=\t", "--with-nth=2..", "--prompt=pane> ", "--no-sort", "--reverse"],
+        input="\n".join(lines),
+        capture_output=False,
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+    if picked.returncode != 0 or not picked.stdout.strip():
+        return
+    rpc("pane.focus", {"pane_id": picked.stdout.split("\t", 1)[0]})
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
