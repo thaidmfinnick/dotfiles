@@ -63,6 +63,15 @@ description = "pick pane"
 width = 60
 height = 12
 
+# lazygit in a popup, opened in the active pane's cwd: prefix, then g
+[[keys.command]]
+key = "prefix+g"
+type = "popup"
+command = "cd \"$($HOME/.local/bin/herdr pane get \"$HERDR_ACTIVE_PANE_ID\" | /opt/homebrew/bin/jq -r '.result.pane.foreground_cwd // .result.pane.cwd')\" && /opt/homebrew/bin/lazygit"
+description = "lazygit"
+width = "90%"
+height = "90%"
+
 # Rotate the split around the active pane (side-by-side <-> stacked): prefix, then space
 [[keys.command]]
 key = "prefix+space"
