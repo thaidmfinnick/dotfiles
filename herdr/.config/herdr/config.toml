@@ -13,7 +13,7 @@ pane_gaps = false
 
 status_indicators = "symbols"
 [keys]
-prefix = "ctrl+space"
+prefix = "ctrl+a"
 
 # Built-ins moved to shift so herdr-nvim can use prefix+e / prefix+o
 edit_scrollback = "prefix+shift+e"
