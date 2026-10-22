@@ -54,6 +54,13 @@ type = "shell"
 command = "$HOME/.local/bin/herdr-ws-move down"
 description = "move workspace down"
 
+# Rotate the split around the active pane (side-by-side <-> stacked): prefix, then space
+[[keys.command]]
+key = "prefix+space"
+type = "shell"
+command = "$HOME/Data/projects/personal/dotfiles/bin/herdr-pane-rotate"
+description = "rotate pane split"
+
 [ui.toast]
 delivery = "herdr"
 

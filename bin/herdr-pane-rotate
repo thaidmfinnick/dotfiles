@@ -1,0 +1,89 @@
+#!/usr/bin/env python3
+"""Toggle the split around a herdr pane between side-by-side and stacked.
+
+Usage:
+  herdr-pane-rotate          rotate the split around the active pane
+  herdr-pane-rotate <id>     rotate the split around a specific pane (e.g. w7:p3)
+
+herdr ignores `pane move` within the same tab, so the pane that sits second
+in the split is parked in a temporary tab and moved back with the other
+direction. The temporary tab closes on its own once it is empty.
+"""
+import json
+import os
+import subprocess
+import sys
+
+HERDR = os.environ.get("HERDR_BIN_PATH", "herdr")
+OPPOSITE = {"right": "left", "down": "up"}
+ROTATED = {"right": "down", "down": "right"}
+
+
+def herdr(*args):
+    out = subprocess.run([HERDR, *args], capture_output=True, text=True)
+    if out.returncode != 0:
+        sys.exit(f"herdr-pane-rotate: {out.stderr.strip() or out.stdout.strip()}")
+    resp = json.loads(out.stdout)
+    if "error" in resp:
+        sys.exit(f"herdr-pane-rotate: {resp['error']}")
+    return resp["result"]
+
+
+def contains(outer, inner):
+    return (
+        outer["x"] <= inner["x"]
+        and outer["y"] <= inner["y"]
+        and inner["x"] + inner["width"] <= outer["x"] + outer["width"]
+        and inner["y"] + inner["height"] <= outer["y"] + outer["height"]
+    )
+
+
+def neighbor(pane_id, direction):
+    try:
+        return herdr("pane", "neighbor", "--pane", pane_id, "--direction", direction)["neighbor"].get(
+            "neighbor_pane_id"
+        )
+    except SystemExit:
+        return None
+
+
+def main(argv):
+    if len(argv) > 1:
+        sys.exit(__doc__)
+    pane_id = argv[0] if argv else os.environ.get("HERDR_ACTIVE_PANE_ID") or os.environ.get("HERDR_PANE_ID")
+    if not pane_id:
+        sys.exit("herdr-pane-rotate: no pane id (not inside herdr?)")
+
+    layout = herdr("pane", "layout", "--pane", pane_id)["layout"]
+    rects = {p["pane_id"]: p["rect"] for p in layout["panes"]}
+    if len(rects) < 2:
+        return
+
+    # The innermost split holding the pane is the one to rotate.
+    splits = [s for s in layout["splits"] if contains(s["rect"], rects[pane_id])]
+    split = min(splits, key=lambda s: s["rect"]["width"] * s["rect"]["height"])
+    direction = split["direction"]
+
+    after = neighbor(pane_id, direction)
+    if after and contains(split["rect"], rects[after]):
+        first, second = pane_id, after
+    else:
+        before = neighbor(pane_id, OPPOSITE[direction])
+        if not before or not contains(split["rect"], rects[before]):
+            return
+        first, second = before, pane_id
+
+    tab_id = layout["tab_id"]
+    herdr("pane", "move", second, "--new-tab", "--no-focus")
+    herdr(
+        "pane", "move", second,
+        "--tab", tab_id,
+        "--target-pane", first,
+        "--split", ROTATED[direction],
+        "--ratio", str(split["ratio"]),
+        "--no-focus",
+    )
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
