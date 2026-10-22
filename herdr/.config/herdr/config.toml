@@ -45,13 +45,13 @@ move_tab_next = "prefix+shift+l"
 [[keys.command]]
 key = "prefix+u"
 type = "shell"
-command = "$HOME/.local/bin/herdr-ws-move up"
+command = "$HOME/Data/projects/personal/dotfiles/bin/herdr-ws-move up"
 description = "move workspace up"
 
 [[keys.command]]
 key = "prefix+d"
 type = "shell"
-command = "$HOME/.local/bin/herdr-ws-move down"
+command = "$HOME/Data/projects/personal/dotfiles/bin/herdr-ws-move down"
 description = "move workspace down"
 
 # Rotate the split around the active pane (side-by-side <-> stacked): prefix, then space
