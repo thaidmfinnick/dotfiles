@@ -1,0 +1,33 @@
+{
+  "lastChangelogVersion": "1.4.0",
+  "packages": [
+    "npm:pi-subagents",
+    "npm:@narumitw/pi-usage",
+    "npm:pi-simplify",
+    {
+      "source": "npm:pi-footer",
+      "extensions": []
+    },
+    "npm:pi-powerline-footer",
+    "npm:pi-memory",
+    "npm:pi-worktree",
+    "npm:pi-vim",
+    "npm:@gotgenes/pi-anthropic-auth"
+  ],
+  "showLastPrompt": true,
+  "powerline": {
+    "preset": "default",
+    "placement": "below",
+    "welcome": true,
+    "customItems": [
+      {
+        "id": "ctxbar",
+        "statusKey": "context-bar",
+        "position": "right",
+        "selfColorize": true,
+        "hideWhenMissing": true
+      }
+    ]
+  },
+  "extensions": []
+}

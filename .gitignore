@@ -28,3 +28,19 @@ id_*
 automatic_backups/
 *.bak
 *.backup
+
+# pi coding agent: ALLOWLIST. Everything under the pi/ stow package is ignored by
+# default; only files explicitly un-ignored below are tracked. This is deliberate:
+# pi writes credentials (auth.json), account identity (claude-account-source.txt),
+# sessions, memory and node_modules into the same tree, so a denylist would leak
+# any new secret file a future pi version starts writing.
+pi/.pi/**
+!pi/.pi/agent/
+!pi/.pi/agent/settings.json
+!pi/.pi/agent/extensions/
+!pi/.pi/agent/extensions/*.ts
+pi/.pi/agent/extensions/*/node_modules/**
+
+# Belt-and-braces: never commit these from anywhere in the repo
+auth.json
+claude-account-source.txt
